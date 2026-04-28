@@ -116,7 +116,7 @@ class _ProductManagementScreenState extends ConsumerState<ProductManagementScree
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<ProductCategory?>(
-                        value: _categoryFilter,
+                        initialValue: _categoryFilter,
                         items: [
                           const DropdownMenuItem<ProductCategory?>(value: null, child: Text('Todas las categorías')),
                           ...ProductCategory.values.map((c) => DropdownMenuItem<ProductCategory?>(
@@ -358,7 +358,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<ProductCategory>(
-              value: _category,
+              initialValue: _category,
               items: ProductCategory.values
                   .map((c) => DropdownMenuItem<ProductCategory>(value: c, child: Text('${c.icon} ${c.displayName}')))
                   .toList(),
