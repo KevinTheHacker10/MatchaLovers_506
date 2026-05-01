@@ -18,10 +18,14 @@ class CartPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cartSummary = ref.watch(cartSummaryProvider);
-    final formatter = NumberFormat.currency(symbol: AppConstants.currency, decimalDigits: 0);
+    final formatter = NumberFormat.currency(
+      symbol: AppConstants.currency,
+      decimalDigits: 0,
+    );
 
     return Column(
       children: [
+        // ── Header ────────────────────────────────────────────────────────
         Container(
           padding: AppSpacing.paddingMd,
           decoration: BoxDecoration(
@@ -64,88 +68,86 @@ class CartPanel extends ConsumerWidget {
             ],
           ),
         ),
+
+        // ── Items ─────────────────────────────────────────────────────────
         Expanded(
           child: cartItems.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.shopping_cart_outlined,
-                        size: 80,
-                        color: Colors.grey[300],
-                      ),
+                      Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[300]),
                       const SizedBox(height: 16),
                       Text(
                         'Carrito vacío',
-                        style: context.textStyles.titleMedium?.copyWith(
-                          color: Colors.grey[400],
-                        ),
+                        style: context.textStyles.titleMedium?.copyWith(color: Colors.grey[400]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Toca un producto para agregarlo',
+                        style: context.textStyles.bodySmall?.copyWith(color: Colors.grey[400]),
                       ),
                     ],
                   ),
                 )
               : ListView.builder(
-                  padding: AppSpacing.paddingMd,
+                  padding: const EdgeInsets.all(12),
                   itemCount: cartItems.length,
                   itemBuilder: (context, index) {
                     final item = cartItems[index];
                     return CartItemCard(
                       item: item,
-                      onIncrement: () => ref.read(cartProvider.notifier).incrementQuantity(item.product.id),
-                      onDecrement: () => ref.read(cartProvider.notifier).decrementQuantity(item.product.id),
-                      onRemove: () => ref.read(cartProvider.notifier).removeProduct(item.product.id),
+                      onIncrement: () =>
+                          ref.read(cartProvider.notifier).incrementQuantity(item.product.id),
+                      onDecrement: () =>
+                          ref.read(cartProvider.notifier).decrementQuantity(item.product.id),
+                      onRemove: () =>
+                          ref.read(cartProvider.notifier).removeProduct(item.product.id),
                     );
                   },
                 ),
         ),
+
+        // ── Resumen + botón pago ───────────────────────────────────────────
         if (cartItems.isNotEmpty)
           Container(
             padding: AppSpacing.paddingMd,
             decoration: BoxDecoration(
               color: Colors.grey[50],
-              border: Border(
-                top: BorderSide(color: Colors.grey[200]!),
-              ),
+              border: Border(top: BorderSide(color: Colors.grey[200]!)),
             ),
             child: Column(
               children: [
-                _buildSummaryRow('Subtotal', formatter.format(cartSummary['subtotal']), context),
-                const SizedBox(height: 8),
-                _buildSummaryRow('Impuesto (13%)', formatter.format(cartSummary['tax']), context),
-                const Divider(height: 24),
-                _buildSummaryRow(
+                _summaryRow('Subtotal', formatter.format(cartSummary['subtotal']), context),
+                const SizedBox(height: 6),
+                _summaryRow('Impuesto (13%)', formatter.format(cartSummary['tax']), context),
+                const Divider(height: 20),
+                _summaryRow(
                   'Total',
                   formatter.format(cartSummary['total']),
                   context,
                   isTotal: true,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
+                  height: 52,
+                  child: ElevatedButton.icon(
                     onPressed: onCheckout,
+                    icon: const Icon(Icons.payment, size: 22),
+                    label: Text(
+                      'Procesar Pago',
+                      style: context.textStyles.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.oliveGreen,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.payment, size: 24),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Procesar Pago',
-                          style: context.textStyles.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -156,7 +158,8 @@ class CartPanel extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, BuildContext context, {bool isTotal = false}) {
+  Widget _summaryRow(String label, String value, BuildContext context,
+      {bool isTotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -164,14 +167,14 @@ class CartPanel extends ConsumerWidget {
           label,
           style: context.textStyles.bodyLarge?.copyWith(
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            fontSize: isTotal ? 20 : null,
+            fontSize: isTotal ? 18 : null,
           ),
         ),
         Text(
           value,
           style: context.textStyles.bodyLarge?.copyWith(
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-            fontSize: isTotal ? 20 : null,
+            fontSize: isTotal ? 18 : null,
             color: isTotal ? AppColors.oliveGreen : null,
           ),
         ),
@@ -179,6 +182,10 @@ class CartPanel extends ConsumerWidget {
     );
   }
 }
+
+// =============================================================================
+// CART ITEM CARD — con imagen del producto
+// =============================================================================
 
 class CartItemCard extends StatelessWidget {
   final CartItem item;
@@ -194,64 +201,104 @@ class CartItemCard extends StatelessWidget {
     required this.onRemove,
   });
 
+  Color get _bgColor {
+    switch (item.product.category) {
+      case ProductCategory.matcha:
+        return const Color(0xFFDFF2D0);
+      case ProductCategory.smoothies:
+        return const Color(0xFFFFE4F0);
+      case ProductCategory.healthyJuices:
+        return const Color(0xFFFFF3CC);
+      case ProductCategory.coldCoffee:
+        return const Color(0xFFE8DDD0);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(symbol: AppConstants.currency, decimalDigits: 0);
+    final formatter = NumberFormat.currency(
+      symbol: AppConstants.currency,
+      decimalDigits: 0,
+    );
 
     return Card(
-      margin: AppSpacing.verticalSm,
+      margin: const EdgeInsets.only(bottom: 10),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: Colors.grey[200]!),
       ),
       child: Padding(
-        padding: AppSpacing.paddingMd,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(10),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item.product.name,
-                    style: context.textStyles.bodyLarge?.semiBold,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+            // ── Imagen del producto ──────────────────────────────────────
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: _bgColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  item.product.category.icon,
+                  style: const TextStyle(fontSize: 30),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: onRemove,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  color: AppColors.coral,
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    _buildQuantityButton(Icons.remove, onDecrement),
-                    Container(
-                      width: 50,
-                      alignment: Alignment.center,
-                      child: Text(
-                        '${item.quantity}',
-                        style: context.textStyles.titleMedium?.bold,
+            const SizedBox(width: 12),
+
+            // ── Info + controles ─────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.product.name,
+                          style: context.textStyles.bodyMedium?.semiBold,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    _buildQuantityButton(Icons.add, onIncrement),
-                  ],
-                ),
-                Text(
-                  formatter.format(item.total),
-                  style: context.textStyles.titleMedium?.bold.withColor(AppColors.oliveGreen),
-                ),
-              ],
+                      GestureDetector(
+                        onTap: onRemove,
+                        child: const Icon(Icons.close, size: 18, color: AppColors.coral),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Controles cantidad
+                      Row(
+                        children: [
+                          _qtyBtn(Icons.remove, onDecrement),
+                          SizedBox(
+                            width: 36,
+                            child: Text(
+                              '${item.quantity}',
+                              textAlign: TextAlign.center,
+                              style: context.textStyles.titleSmall?.bold,
+                            ),
+                          ),
+                          _qtyBtn(Icons.add, onIncrement),
+                        ],
+                      ),
+                      // Precio total del item
+                      Text(
+                        formatter.format(item.total),
+                        style: context.textStyles.titleSmall?.bold
+                            .withColor(AppColors.oliveGreen),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -259,17 +306,19 @@ class CartItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildQuantityButton(IconData icon, VoidCallback onPressed) {
+  Widget _qtyBtn(IconData icon, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.oliveGreen,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: IconButton(
-        icon: Icon(icon, size: 20, color: Colors.white),
-        onPressed: onPressed,
-        padding: const EdgeInsets.all(4),
-        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon, size: 16, color: Colors.white),
+        ),
       ),
     );
   }

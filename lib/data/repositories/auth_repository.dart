@@ -138,4 +138,8 @@ class AuthRepository {
       return null;
     }
   }
+
+  Future<void> updateUser(UserEntity copyWith, {String? newPassword}) async {}
+
+  Future<void> deleteUser(String id) async {}
 }
