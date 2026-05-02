@@ -18,6 +18,8 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
   bool _isProcessing = false;
+  // Flag para evitar que el guard de carrito vacío navegue mientras procesamos
+  bool _paymentDone = false;
 
   Future<void> _processPayment() async {
     final currentUser = ref.read(currentUserProvider);
@@ -29,7 +31,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() => _isProcessing = true);
 
     final orderItems = cart.map((item) => item.toOrderItem()).toList();
-    
+
     final order = await ref.read(orderProvider.notifier).createOrder(
       userId: currentUser.id,
       userName: currentUser.fullName,
@@ -40,19 +42,28 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (!mounted) return;
 
     if (order != null) {
+      // Marcamos como completado ANTES de limpiar el carrito
+      // para que el guard de cart.isEmpty no navegue solo
+      setState(() { _paymentDone = true; });
+
       ref.read(cartProvider.notifier).clear();
-      
+
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => SuccessDialog(orderId: order.id, total: order.total),
+        builder: (_) => SuccessDialog(
+          orderId: order.id,
+          total: order.total,
+          onContinue: () => context.go('/pos'), // ← navega directo al POS
+        ),
       );
     } else {
       setState(() => _isProcessing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Error al procesar el pago'),
+          content: Text('Error al procesar el pago. Intenta de nuevo.'),
           backgroundColor: AppColors.coral,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -62,13 +73,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
     final cartSummary = ref.watch(cartSummaryProvider);
-    final formatter = NumberFormat.currency(symbol: AppConstants.currency, decimalDigits: 0);
+    final formatter = NumberFormat.currency(
+        symbol: AppConstants.currency, decimalDigits: 0);
 
-    if (cart.isEmpty) {
+    // Solo redirige si el carrito está vacío Y el pago NO se completó
+    // (evita que el guard interfiera después de limpiar el carrito)
+    if (cart.isEmpty && !_paymentDone) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.pop();
+        if (mounted) context.pop();
       });
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
@@ -93,6 +109,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ── Encabezado ────────────────────────────────────────
                 Row(
                   children: [
                     Container(
@@ -115,6 +132,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
+
+                // ── Items del carrito ─────────────────────────────────
                 Container(
                   padding: AppSpacing.paddingMd,
                   decoration: BoxDecoration(
@@ -137,7 +156,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               child: Center(
                                 child: Text(
                                   '${item.quantity}x',
-                                  style: context.textStyles.bodyMedium?.copyWith(
+                                  style: context.textStyles.bodyMedium
+                                      ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -164,16 +184,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 const SizedBox(height: 24),
                 const Divider(),
                 const SizedBox(height: 16),
-                _buildSummaryRow('Subtotal', formatter.format(cartSummary['subtotal'])),
+
+                // ── Totales ───────────────────────────────────────────
+                _summaryRow('Subtotal',
+                    formatter.format(cartSummary['subtotal'])),
                 const SizedBox(height: 8),
-                _buildSummaryRow('Impuesto (13%)', formatter.format(cartSummary['tax'])),
+                _summaryRow('Impuesto (13%)',
+                    formatter.format(cartSummary['tax'])),
                 const SizedBox(height: 16),
-                _buildSummaryRow(
+                _summaryRow(
                   'Total',
                   formatter.format(cartSummary['total']),
                   isTotal: true,
                 ),
                 const SizedBox(height: 32),
+
+                // ── Método de pago ────────────────────────────────────
                 Text(
                   'Método de Pago',
                   style: context.textStyles.titleLarge?.bold,
@@ -182,17 +208,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 PaymentMethodOption(
                   method: PaymentMethod.cash,
                   icon: Icons.payments,
-                  isSelected: _selectedPaymentMethod == PaymentMethod.cash,
-                  onTap: () => setState(() => _selectedPaymentMethod = PaymentMethod.cash),
+                  isSelected:
+                      _selectedPaymentMethod == PaymentMethod.cash,
+                  onTap: () => setState(
+                      () => _selectedPaymentMethod = PaymentMethod.cash),
                 ),
                 const SizedBox(height: 12),
                 PaymentMethodOption(
                   method: PaymentMethod.card,
                   icon: Icons.credit_card,
-                  isSelected: _selectedPaymentMethod == PaymentMethod.card,
-                  onTap: () => setState(() => _selectedPaymentMethod = PaymentMethod.card),
+                  isSelected:
+                      _selectedPaymentMethod == PaymentMethod.card,
+                  onTap: () => setState(
+                      () => _selectedPaymentMethod = PaymentMethod.card),
                 ),
                 const SizedBox(height: 32),
+
+                // ── Botón confirmar ───────────────────────────────────
                 SizedBox(
                   height: 56,
                   child: ElevatedButton(
@@ -213,7 +245,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Confirmar Pago',
-                                style: context.textStyles.titleMedium?.copyWith(
+                                style: context.textStyles.titleMedium
+                                    ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -230,7 +263,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {
+  Widget _summaryRow(String label, String value, {bool isTotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -254,6 +287,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 }
 
+// =============================================================================
+// PAYMENT METHOD OPTION
+// =============================================================================
+
 class PaymentMethodOption extends StatelessWidget {
   final PaymentMethod method;
   final IconData icon;
@@ -271,7 +308,9 @@ class PaymentMethodOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isSelected ? AppColors.oliveGreen.withValues(alpha: 0.1) : Colors.grey[50],
+      color: isSelected
+          ? AppColors.oliveGreen.withValues(alpha: 0.1)
+          : Colors.grey[50],
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -281,7 +320,8 @@ class PaymentMethodOption extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? AppColors.oliveGreen : Colors.grey[300]!,
+              color:
+                  isSelected ? AppColors.oliveGreen : Colors.grey[300]!,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -290,7 +330,9 @@ class PaymentMethodOption extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.oliveGreen : Colors.grey[300],
+                  color: isSelected
+                      ? AppColors.oliveGreen
+                      : Colors.grey[300],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -303,13 +345,15 @@ class PaymentMethodOption extends StatelessWidget {
               Text(
                 method.displayName,
                 style: context.textStyles.titleMedium?.copyWith(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected ? AppColors.oliveGreen : null,
                 ),
               ),
               const Spacer(),
               if (isSelected)
-                const Icon(Icons.check_circle, color: AppColors.oliveGreen, size: 28),
+                const Icon(Icons.check_circle,
+                    color: AppColors.oliveGreen, size: 28),
             ],
           ),
         ),
@@ -318,22 +362,30 @@ class PaymentMethodOption extends StatelessWidget {
   }
 }
 
+// =============================================================================
+// SUCCESS DIALOG
+// =============================================================================
+
 class SuccessDialog extends StatelessWidget {
   final String orderId;
   final double total;
+  final VoidCallback onContinue; // ← navega directo al POS
 
   const SuccessDialog({
     super.key,
     required this.orderId,
     required this.total,
+    required this.onContinue,
   });
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(symbol: AppConstants.currency, decimalDigits: 0);
+    final formatter = NumberFormat.currency(
+        symbol: AppConstants.currency, decimalDigits: 0);
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: AppSpacing.paddingXl,
         child: Column(
@@ -367,7 +419,7 @@ class SuccessDialog extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Pedido #${orderId.substring(0, 8)}',
+              'Pedido #${orderId.substring(0, 8).toUpperCase()}',
               style: context.textStyles.bodyMedium?.copyWith(
                 color: Colors.grey[600],
               ),
@@ -378,10 +430,7 @@ class SuccessDialog extends StatelessWidget {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  context.pop();
-                  context.pop();
-                },
+                onPressed: onContinue, // ← context.go('/pos')
                 child: const Text('Continuar'),
               ),
             ),

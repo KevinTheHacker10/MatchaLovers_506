@@ -38,7 +38,6 @@ class ProductRepository {
         _createProduct('Chocolate', 3000, ProductCategory.matcha, now),
         _createProduct('Caramelo', 3000, ProductCategory.matcha, now),
         _createProduct('Galleta María', 3000, ProductCategory.matcha, now),
-        
         // Batidos
         _createProduct('Mango - Maracuyá - Naranja', 2700, ProductCategory.smoothies, now),
         _createProduct('Fresa - Mora - Arándanos', 2700, ProductCategory.smoothies, now),
@@ -46,22 +45,20 @@ class ProductRepository {
         _createProduct('Piña Colada y Fresa', 3000, ProductCategory.smoothies, now),
         _createProduct('Frutas con agua', 2000, ProductCategory.smoothies, now),
         _createProduct('Frutas con leche', 2700, ProductCategory.smoothies, now),
-        
         // Jugos Saludables
-        _createProduct('Detox', 2500, ProductCategory.healthyJuices, now, 
+        _createProduct('Detox', 2500, ProductCategory.healthyJuices, now,
             description: 'Piña, apio, pepino, naranja'),
         _createProduct('Pérdida de Peso', 2500, ProductCategory.healthyJuices, now,
             description: 'Piña, mango, espinaca, chía'),
         _createProduct('Anti Estreñimiento', 2500, ProductCategory.healthyJuices, now,
             description: 'Papaya, piña, apio, chía'),
-        
         // Cafés Fríos
         _createProduct('Frozen Capuccino', 2800, ProductCategory.coldCoffee, now),
         _createProduct('Fresa Coffee', 3200, ProductCategory.coldCoffee, now),
         _createProduct('Oreo Coffee', 3200, ProductCategory.coldCoffee, now),
         _createProduct('Caramel Macchiato', 3200, ProductCategory.coldCoffee, now),
       ];
-      
+
       for (var product in sampleProducts) {
         await _saveProduct(product);
       }
@@ -69,12 +66,14 @@ class ProductRepository {
     }
   }
 
+  // Helper interno — imageUrl es null por defecto en los datos de muestra
   ProductModel _createProduct(
     String name,
     double price,
     ProductCategory category,
     DateTime now, {
     String? description,
+    String? imageUrl,
   }) {
     return ProductModel(
       id: _uuid.v4(),
@@ -83,6 +82,7 @@ class ProductRepository {
       category: category,
       description: description,
       isAvailable: true,
+      imageUrl: imageUrl,
       createdAt: now,
       updatedAt: now,
     );
@@ -91,9 +91,11 @@ class ProductRepository {
   /// Get all products
   Future<List<ProductModel>> getAllProducts() async {
     try {
-      final productsJson = _prefs.getStringList(AppConstants.storageKeyProducts) ?? [];
+      final productsJson =
+          _prefs.getStringList(AppConstants.storageKeyProducts) ?? [];
       return productsJson
-          .map((json) => ProductModel.fromJson(jsonDecode(json) as Map<String, dynamic>))
+          .map((json) =>
+              ProductModel.fromJson(jsonDecode(json) as Map<String, dynamic>))
           .toList();
     } catch (e) {
       debugPrint('Get all products error: $e');
@@ -102,30 +104,32 @@ class ProductRepository {
   }
 
   /// Get products by category
-  Future<List<ProductEntity>> getProductsByCategory(ProductCategory category) async {
+  Future<List<ProductEntity>> getProductsByCategory(
+      ProductCategory category) async {
     final products = await getAllProducts();
     return products.where((p) => p.category == category).toList();
   }
 
-  /// Save product
+  /// Save product (append)
   Future<void> _saveProduct(ProductModel product) async {
     try {
       final products = await getAllProducts();
       products.add(product);
-      
-      final productsJson = products.map((p) => jsonEncode(p.toJson())).toList();
+      final productsJson =
+          products.map((p) => jsonEncode(p.toJson())).toList();
       await _prefs.setStringList(AppConstants.storageKeyProducts, productsJson);
     } catch (e) {
       debugPrint('Save product error: $e');
     }
   }
 
-  /// Create new product
+  /// Create new product — now accepts imageUrl
   Future<ProductEntity?> createProduct({
     required String name,
     required double price,
     required ProductCategory category,
     String? description,
+    String? imageUrl,           // ← NUEVO
   }) async {
     try {
       final now = DateTime.now();
@@ -136,10 +140,10 @@ class ProductRepository {
         category: category,
         description: description,
         isAvailable: true,
+        imageUrl: imageUrl,     // ← NUEVO
         createdAt: now,
         updatedAt: now,
       );
-      
       await _saveProduct(product);
       return product;
     } catch (e) {
@@ -153,11 +157,12 @@ class ProductRepository {
     try {
       final products = await getAllProducts();
       final index = products.indexWhere((p) => p.id == product.id);
-      
       if (index != -1) {
         products[index] = ProductModel.fromEntity(product);
-        final productsJson = products.map((p) => jsonEncode(p.toJson())).toList();
-        await _prefs.setStringList(AppConstants.storageKeyProducts, productsJson);
+        final productsJson =
+            products.map((p) => jsonEncode(p.toJson())).toList();
+        await _prefs.setStringList(
+            AppConstants.storageKeyProducts, productsJson);
       }
     } catch (e) {
       debugPrint('Update product error: $e');
@@ -169,8 +174,8 @@ class ProductRepository {
     try {
       final products = await getAllProducts();
       products.removeWhere((p) => p.id == productId);
-      
-      final productsJson = products.map((p) => jsonEncode(p.toJson())).toList();
+      final productsJson =
+          products.map((p) => jsonEncode(p.toJson())).toList();
       await _prefs.setStringList(AppConstants.storageKeyProducts, productsJson);
     } catch (e) {
       debugPrint('Delete product error: $e');

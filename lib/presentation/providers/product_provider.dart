@@ -36,7 +36,8 @@ class ProductFilterState {
     double? maxPrice,
     bool? onlyAvailable,
     ProductSort? sort,
-  }) => ProductFilterState(
+  }) =>
+      ProductFilterState(
         query: query ?? this.query,
         minPrice: minPrice ?? this.minPrice,
         maxPrice: maxPrice ?? this.maxPrice,
@@ -46,7 +47,8 @@ class ProductFilterState {
 
   bool get hasQuery => query.trim().isNotEmpty;
   bool get hasPriceRange => minPrice != null || maxPrice != null;
-  bool get hasAnyFilter => hasQuery || hasPriceRange || !onlyAvailable || sort != ProductSort.relevance;
+  bool get hasAnyFilter =>
+      hasQuery || hasPriceRange || !onlyAvailable || sort != ProductSort.relevance;
 }
 
 /// Notifier for filters
@@ -55,14 +57,17 @@ class ProductFilterNotifier extends Notifier<ProductFilterState> {
   ProductFilterState build() => const ProductFilterState();
 
   void setQuery(String value) => state = state.copyWith(query: value);
-  void setPriceRange({double? min, double? max}) => state = state.copyWith(minPrice: min, maxPrice: max);
-  void setOnlyAvailable(bool value) => state = state.copyWith(onlyAvailable: value);
+  void setPriceRange({double? min, double? max}) =>
+      state = state.copyWith(minPrice: min, maxPrice: max);
+  void setOnlyAvailable(bool value) =>
+      state = state.copyWith(onlyAvailable: value);
   void setSort(ProductSort sort) => state = state.copyWith(sort: sort);
   void clear() => state = const ProductFilterState();
 }
 
 /// Provider for product filters
-final productFilterProvider = NotifierProvider<ProductFilterNotifier, ProductFilterState>(() {
+final productFilterProvider =
+    NotifierProvider<ProductFilterNotifier, ProductFilterState>(() {
   return ProductFilterNotifier();
 });
 
@@ -93,11 +98,13 @@ class ProductNotifier extends Notifier<AsyncValue<List<ProductEntity>>> {
     await loadProducts();
   }
 
+  /// Create product — now accepts imageUrl
   Future<void> createProduct({
     required String name,
     required double price,
     required ProductCategory category,
     String? description,
+    String? imageUrl,           // ← NUEVO
   }) async {
     try {
       await _repository.createProduct(
@@ -105,6 +112,7 @@ class ProductNotifier extends Notifier<AsyncValue<List<ProductEntity>>> {
         price: price,
         category: category,
         description: description,
+        imageUrl: imageUrl,     // ← NUEVO
       );
       await loadProducts();
     } catch (e) {
@@ -132,15 +140,18 @@ class ProductNotifier extends Notifier<AsyncValue<List<ProductEntity>>> {
 }
 
 /// Provider for products state
-final productProvider = NotifierProvider<ProductNotifier, AsyncValue<List<ProductEntity>>>(() {
+final productProvider =
+    NotifierProvider<ProductNotifier, AsyncValue<List<ProductEntity>>>(() {
   return ProductNotifier();
 });
 
 /// Provider to get products by category
-final productsByCategoryProvider = Provider.family<List<ProductEntity>, ProductCategory>((ref, category) {
+final productsByCategoryProvider =
+    Provider.family<List<ProductEntity>, ProductCategory>((ref, category) {
   final productsAsync = ref.watch(productProvider);
   return productsAsync.maybeWhen(
-    data: (products) => products.where((p) => p.category == category && p.isAvailable).toList(),
+    data: (products) =>
+        products.where((p) => p.category == category && p.isAvailable).toList(),
     orElse: () => [],
   );
 });
@@ -155,21 +166,20 @@ final availableProductsProvider = Provider<List<ProductEntity>>((ref) {
 });
 
 /// Combined provider: products filtered by current filters and category
-final filteredProductsByCategoryProvider = Provider.family<List<ProductEntity>, ProductCategory>((ref, category) {
+final filteredProductsByCategoryProvider =
+    Provider.family<List<ProductEntity>, ProductCategory>((ref, category) {
   final productsAsync = ref.watch(productProvider);
   final filters = ref.watch(productFilterProvider);
 
-  List<ProductEntity> items = productsAsync.maybeWhen(data: (p) => p, orElse: () => []);
+  List<ProductEntity> items =
+      productsAsync.maybeWhen(data: (p) => p, orElse: () => []);
 
-  // Category filter
   items = items.where((p) => p.category == category).toList();
 
-  // Availability filter
   if (filters.onlyAvailable) {
     items = items.where((p) => p.isAvailable).toList();
   }
 
-  // Text query filter
   final q = filters.query.trim().toLowerCase();
   if (q.isNotEmpty) {
     items = items.where((p) {
@@ -179,18 +189,17 @@ final filteredProductsByCategoryProvider = Provider.family<List<ProductEntity>, 
     }).toList();
   }
 
-  // Price range
   if (filters.minPrice != null) {
-    items = items.where((p) => p.price >= (filters.minPrice! - 0.0001)).toList();
+    items =
+        items.where((p) => p.price >= (filters.minPrice! - 0.0001)).toList();
   }
   if (filters.maxPrice != null) {
-    items = items.where((p) => p.price <= (filters.maxPrice! + 0.0001)).toList();
+    items =
+        items.where((p) => p.price <= (filters.maxPrice! + 0.0001)).toList();
   }
 
-  // Sorting
   switch (filters.sort) {
     case ProductSort.relevance:
-      // Keep current order
       break;
     case ProductSort.priceAsc:
       items.sort((a, b) => a.price.compareTo(b.price));
@@ -199,7 +208,8 @@ final filteredProductsByCategoryProvider = Provider.family<List<ProductEntity>, 
       items.sort((a, b) => b.price.compareTo(a.price));
       break;
     case ProductSort.nameAsc:
-      items.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      items.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       break;
   }
 

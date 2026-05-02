@@ -10,7 +10,6 @@ class ProductCard extends StatelessWidget {
 
   const ProductCard({super.key, required this.product, required this.onTap});
 
-  // Color de fondo por categoría
   Color get _bgColor {
     switch (product.category) {
       case ProductCategory.matcha:
@@ -56,21 +55,13 @@ class ProductCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── Imagen (emoji) ─────────────────────────────────────────
+                // ── Imagen ────────────────────────────────────────────────
                 Expanded(
                   flex: 5,
-                  child: Container(
-                    color: _bgColor,
-                    child: Center(
-                      child: Text(
-                        product.category.icon,
-                        style: const TextStyle(fontSize: 56),
-                      ),
-                    ),
-                  ),
+                  child: _ProductImage(product: product, bgColor: _bgColor),
                 ),
 
-                // ── Info ───────────────────────────────────────────────────
+                // ── Info ──────────────────────────────────────────────────
                 Expanded(
                   flex: 4,
                   child: Padding(
@@ -104,11 +95,7 @@ class ProductCard extends StatelessWidget {
                                 color: _accentColor,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 16,
-                              ),
+                              child: const Icon(Icons.add, color: Colors.white, size: 16),
                             ),
                           ],
                         ),
@@ -119,7 +106,7 @@ class ProductCard extends StatelessWidget {
               ],
             ),
 
-            // ── Overlay no disponible ──────────────────────────────────────
+            // ── Overlay no disponible ──────────────────────────────────
             if (!product.isAvailable)
               Positioned.fill(
                 child: Container(
@@ -140,7 +127,7 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
 
-            // ── Badge categoría ────────────────────────────────────────────
+            // ── Badge categoría ────────────────────────────────────────
             Positioned(
               top: 8,
               left: 8,
@@ -162,6 +149,142 @@ class ProductCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// WIDGET DE IMAGEN — reutilizado también en CartPanel
+// =============================================================================
+
+/// Muestra la imagen del producto: URL de red, emoji personalizado, o emoji de categoría.
+/// Se puede usar en ProductCard y CartItemCard.
+class ProductImage extends StatelessWidget {
+  final ProductEntity product;
+  final Color bgColor;
+  final double? emojiSize;
+  final BorderRadius? borderRadius;
+
+  const ProductImage({
+    super.key,
+    required this.product,
+    required this.bgColor,
+    this.emojiSize,
+    this.borderRadius,
+  });
+
+  bool get _isNetworkImage {
+    final url = product.imageUrl ?? '';
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = borderRadius ?? BorderRadius.circular(0);
+
+    if (_isNetworkImage) {
+      return ClipRRect(
+        borderRadius: radius,
+        child: Image.network(
+          product.imageUrl!,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (_, __, ___) => _EmojiBox(
+            bgColor: bgColor,
+            emoji: product.category.icon,
+            size: emojiSize ?? 56,
+            borderRadius: radius,
+          ),
+          loadingBuilder: (_, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              decoration: BoxDecoration(color: bgColor, borderRadius: radius),
+              child: const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    // Emoji personalizado o el de la categoría
+    return _EmojiBox(
+      bgColor: bgColor,
+      emoji: product.displayImage,
+      size: emojiSize ?? 56,
+      borderRadius: radius,
+    );
+  }
+}
+
+class _ProductImage extends StatelessWidget {
+  final ProductEntity product;
+  final Color bgColor;
+
+  const _ProductImage({required this.product, required this.bgColor});
+
+  bool get _isNetworkImage {
+    final url = product.imageUrl ?? '';
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isNetworkImage) {
+      return Image.network(
+        product.imageUrl!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (_, __, ___) => _EmojiBox(
+          bgColor: bgColor,
+          emoji: product.category.icon,
+          size: 56,
+        ),
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: bgColor,
+            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        },
+      );
+    }
+
+    return _EmojiBox(
+      bgColor: bgColor,
+      emoji: product.displayImage,
+      size: 56,
+    );
+  }
+}
+
+class _EmojiBox extends StatelessWidget {
+  final Color bgColor;
+  final String emoji;
+  final double size;
+  final BorderRadius? borderRadius;
+
+  const _EmojiBox({
+    required this.bgColor,
+    required this.emoji,
+    required this.size,
+    this.borderRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: borderRadius,
+      ),
+      width: double.infinity,
+      height: double.infinity,
+      child: Center(
+        child: Text(emoji, style: TextStyle(fontSize: size)),
       ),
     );
   }

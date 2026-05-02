@@ -31,17 +31,16 @@ class CartItem {
 /// State notifier for shopping cart
 class CartNotifier extends Notifier<List<CartItem>> {
   @override
-  List<CartItem> build() {
-    return [];
-  }
+  List<CartItem> build() => [];
 
   void addProduct(ProductEntity product) {
-    final existingIndex = state.indexWhere((item) => item.product.id == product.id);
-    
+    final existingIndex =
+        state.indexWhere((item) => item.product.id == product.id);
     if (existingIndex >= 0) {
       state = [
         ...state.sublist(0, existingIndex),
-        state[existingIndex].copyWith(quantity: state[existingIndex].quantity + 1),
+        state[existingIndex]
+            .copyWith(quantity: state[existingIndex].quantity + 1),
         ...state.sublist(existingIndex + 1),
       ];
     } else {
@@ -58,8 +57,8 @@ class CartNotifier extends Notifier<List<CartItem>> {
       removeProduct(productId);
       return;
     }
-
-    final index = state.indexWhere((item) => item.product.id == productId);
+    final index =
+        state.indexWhere((item) => item.product.id == productId);
     if (index >= 0) {
       state = [
         ...state.sublist(0, index),
@@ -70,44 +69,33 @@ class CartNotifier extends Notifier<List<CartItem>> {
   }
 
   void incrementQuantity(String productId) {
-    final index = state.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      updateQuantity(productId, state[index].quantity + 1);
-    }
+    final index =
+        state.indexWhere((item) => item.product.id == productId);
+    if (index >= 0) updateQuantity(productId, state[index].quantity + 1);
   }
 
   void decrementQuantity(String productId) {
-    final index = state.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      updateQuantity(productId, state[index].quantity - 1);
-    }
+    final index =
+        state.indexWhere((item) => item.product.id == productId);
+    if (index >= 0) updateQuantity(productId, state[index].quantity - 1);
   }
 
-  void clear() {
-    state = [];
-  }
-
-  double get subtotal => state.fold(0, (sum, item) => sum + item.total);
-  
-  double get tax => subtotal * 0.13;
-  
-  double get total => subtotal + tax;
-  
-  int get itemCount => state.fold(0, (sum, item) => sum + item.quantity);
+  void clear() => state = [];
 }
 
 /// Provider for shopping cart
-final cartProvider = NotifierProvider<CartNotifier, List<CartItem>>(() {
-  return CartNotifier();
-});
+final cartProvider =
+    NotifierProvider<CartNotifier, List<CartItem>>(() => CartNotifier());
 
-/// Provider for cart summary
+/// Provider for cart summary — FIX: watch cartProvider (la lista), no .notifier
 final cartSummaryProvider = Provider<Map<String, dynamic>>((ref) {
-  final cart = ref.watch(cartProvider.notifier);
+  final items = ref.watch(cartProvider); // ← reactivo, se recalcula al cambiar
+  final subtotal = items.fold(0.0, (sum, item) => sum + item.total);
+  final tax = subtotal * 0.13;
   return {
-    'subtotal': cart.subtotal,
-    'tax': cart.tax,
-    'total': cart.total,
-    'itemCount': cart.itemCount,
+    'subtotal': subtotal,
+    'tax': tax,
+    'total': subtotal + tax,
+    'itemCount': items.fold(0, (sum, item) => sum + item.quantity),
   };
 });

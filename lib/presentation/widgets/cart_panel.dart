@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:matcha_lovers_506/core/constants.dart';
 import 'package:matcha_lovers_506/presentation/providers/cart_provider.dart';
+import 'package:matcha_lovers_506/presentation/widgets/product_card.dart';
 import 'package:matcha_lovers_506/theme.dart';
 
 class CartPanel extends ConsumerWidget {
@@ -76,16 +77,19 @@ class CartPanel extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[300]),
+                      Icon(Icons.shopping_cart_outlined,
+                          size: 80, color: Colors.grey[300]),
                       const SizedBox(height: 16),
                       Text(
                         'Carrito vacío',
-                        style: context.textStyles.titleMedium?.copyWith(color: Colors.grey[400]),
+                        style: context.textStyles.titleMedium
+                            ?.copyWith(color: Colors.grey[400]),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Toca un producto para agregarlo',
-                        style: context.textStyles.bodySmall?.copyWith(color: Colors.grey[400]),
+                        style: context.textStyles.bodySmall
+                            ?.copyWith(color: Colors.grey[400]),
                       ),
                     ],
                   ),
@@ -97,18 +101,21 @@ class CartPanel extends ConsumerWidget {
                     final item = cartItems[index];
                     return CartItemCard(
                       item: item,
-                      onIncrement: () =>
-                          ref.read(cartProvider.notifier).incrementQuantity(item.product.id),
-                      onDecrement: () =>
-                          ref.read(cartProvider.notifier).decrementQuantity(item.product.id),
-                      onRemove: () =>
-                          ref.read(cartProvider.notifier).removeProduct(item.product.id),
+                      onIncrement: () => ref
+                          .read(cartProvider.notifier)
+                          .incrementQuantity(item.product.id),
+                      onDecrement: () => ref
+                          .read(cartProvider.notifier)
+                          .decrementQuantity(item.product.id),
+                      onRemove: () => ref
+                          .read(cartProvider.notifier)
+                          .removeProduct(item.product.id),
                     );
                   },
                 ),
         ),
 
-        // ── Resumen + botón pago ───────────────────────────────────────────
+        // ── Resumen + botón ───────────────────────────────────────────────
         if (cartItems.isNotEmpty)
           Container(
             padding: AppSpacing.paddingMd,
@@ -184,7 +191,7 @@ class CartPanel extends ConsumerWidget {
 }
 
 // =============================================================================
-// CART ITEM CARD — con imagen del producto
+// CART ITEM CARD — usa ProductImage para mostrar imagen real o emoji
 // =============================================================================
 
 class CartItemCard extends StatelessWidget {
@@ -232,24 +239,23 @@ class CartItemCard extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         child: Row(
           children: [
-            // ── Imagen del producto ──────────────────────────────────────
-            Container(
+            // ── Imagen del producto (URL o emoji) ──────────────────────
+            SizedBox(
               width: 60,
               height: 60,
-              decoration: BoxDecoration(
-                color: _bgColor,
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  item.product.category.icon,
-                  style: const TextStyle(fontSize: 30),
+                child: ProductImage(
+                  product: item.product,
+                  bgColor: _bgColor,
+                  emojiSize: 30,
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
             const SizedBox(width: 12),
 
-            // ── Info + controles ─────────────────────────────────────────
+            // ── Info + controles ─────────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +272,8 @@ class CartItemCard extends StatelessWidget {
                       ),
                       GestureDetector(
                         onTap: onRemove,
-                        child: const Icon(Icons.close, size: 18, color: AppColors.coral),
+                        child: const Icon(Icons.close,
+                            size: 18, color: AppColors.coral),
                       ),
                     ],
                   ),
@@ -274,7 +281,6 @@ class CartItemCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Controles cantidad
                       Row(
                         children: [
                           _qtyBtn(Icons.remove, onDecrement),
@@ -289,7 +295,6 @@ class CartItemCard extends StatelessWidget {
                           _qtyBtn(Icons.add, onIncrement),
                         ],
                       ),
-                      // Precio total del item
                       Text(
                         formatter.format(item.total),
                         style: context.textStyles.titleSmall?.bold

@@ -34,7 +34,8 @@ class _ProductManagementScreenState
       isScrollControlled: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => Padding(
         padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -63,8 +64,9 @@ class _ProductManagementScreenState
       appBar: AppBar(
         title: const Text('Productos • Administración'),
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop()),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         actions: [
           IconButton(
             tooltip: 'Nuevo producto',
@@ -78,7 +80,7 @@ class _ProductManagementScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Filtros ─────────────────────────────────────────────────────
+            // ── Filtros ────────────────────────────────────────────────
             Card(
               child: Padding(
                 padding: AppSpacing.paddingMd,
@@ -92,8 +94,9 @@ class _ProductManagementScreenState
                         decoration: InputDecoration(
                           hintText: 'Buscar por nombre o descripción…',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: query.isNotEmpty
+                          suffixIcon: _searchCtrl.text.isNotEmpty
                               ? IconButton(
+                                  tooltip: 'Limpiar',
                                   icon: const Icon(Icons.close),
                                   onPressed: () {
                                     _searchCtrl.clear();
@@ -133,8 +136,9 @@ class _ProductManagementScreenState
                         value: _categoryFilter,
                         items: [
                           const DropdownMenuItem<ProductCategory?>(
-                              value: null,
-                              child: Text('Todas las categorías')),
+                            value: null,
+                            child: Text('Todas'),
+                          ),
                           ...ProductCategory.values.map((c) =>
                               DropdownMenuItem<ProductCategory?>(
                                 value: c,
@@ -159,7 +163,7 @@ class _ProductManagementScreenState
             ),
             const SizedBox(height: 12),
 
-            // ── Lista ────────────────────────────────────────────────────────
+            // ── Lista de productos ─────────────────────────────────────
             Expanded(
               child: productsAsync.when(
                 data: (list) {
@@ -199,13 +203,23 @@ class _ProductManagementScreenState
                           padding: AppSpacing.paddingMd,
                           child: Row(
                             children: [
-                              // Imagen del producto
-                              ProductImageWidget(
-                                product: p,
-                                size: 52,
-                                borderRadius: 12,
+                              // ── Miniatura imagen ──────────────────
+                              SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: ProductImage(
+                                    product: p,
+                                    bgColor: _bgColorFor(p.category),
+                                    emojiSize: 26,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 12),
+
+                              // ── Info ──────────────────────────────
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment:
@@ -214,9 +228,11 @@ class _ProductManagementScreenState
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: Text(p.name,
-                                              style: context.textStyles
-                                                  .titleMedium?.semiBold),
+                                          child: Text(
+                                            p.name,
+                                            style: context.textStyles
+                                                .titleMedium?.semiBold,
+                                          ),
                                         ),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
@@ -230,7 +246,8 @@ class _ProductManagementScreenState
                                           ),
                                           child: Text(
                                             p.category.displayName,
-                                            style: context.textStyles.labelSmall
+                                            style: context.textStyles
+                                                .labelSmall
                                                 ?.withColor(Theme.of(context)
                                                     .colorScheme
                                                     .onPrimaryContainer),
@@ -246,25 +263,26 @@ class _ProductManagementScreenState
                                               .colorScheme
                                               .onSurfaceVariant),
                                     ),
-                                    // Indicador de imagen
-                                    if (p.imageUrl != null &&
-                                        p.imageUrl!.isNotEmpty)
+                                    // Muestra URL si tiene imagen
+                                    if (p.hasCustomImage)
                                       Padding(
                                         padding:
-                                            const EdgeInsets.only(top: 4),
+                                            const EdgeInsets.only(top: 2),
                                         child: Row(
                                           children: [
                                             Icon(Icons.image,
                                                 size: 12,
-                                                color: AppColors.oliveGreen
-                                                    .withValues(alpha: 0.7)),
+                                                color: AppColors.oliveGreen),
                                             const SizedBox(width: 4),
-                                            Text(
-                                              'Imagen personalizada',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.oliveGreen
-                                                    .withValues(alpha: 0.7),
+                                            Expanded(
+                                              child: Text(
+                                                p.imageUrl!,
+                                                style: context.textStyles
+                                                    .labelSmall
+                                                    ?.withColor(AppColors
+                                                        .oliveGreen),
+                                                overflow:
+                                                    TextOverflow.ellipsis,
                                               ),
                                             ),
                                           ],
@@ -274,6 +292,8 @@ class _ProductManagementScreenState
                                 ),
                               ),
                               const SizedBox(width: 12),
+
+                              // ── Precio + toggle + acciones ────────
                               Text(
                                 '${AppConstants.currency}${p.price.toStringAsFixed(0)}',
                                 style:
@@ -292,8 +312,9 @@ class _ProductManagementScreenState
                                     value: p.isAvailable,
                                     onChanged: (v) async {
                                       final updated = p.copyWith(
-                                          isAvailable: v,
-                                          updatedAt: DateTime.now());
+                                        isAvailable: v,
+                                        updatedAt: DateTime.now(),
+                                      );
                                       await ref
                                           .read(productProvider.notifier)
                                           .updateProduct(updated);
@@ -317,8 +338,7 @@ class _ProductManagementScreenState
                                       await showDialog<bool>(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      title:
-                                          const Text('Eliminar producto'),
+                                      title: const Text('Eliminar producto'),
                                       content: Text(
                                           '¿Confirma eliminar "${p.name}"?'),
                                       actions: [
@@ -365,6 +385,19 @@ class _ProductManagementScreenState
       ),
     );
   }
+
+  Color _bgColorFor(ProductCategory cat) {
+    switch (cat) {
+      case ProductCategory.matcha:
+        return const Color(0xFFDFF2D0);
+      case ProductCategory.smoothies:
+        return const Color(0xFFFFE4F0);
+      case ProductCategory.healthyJuices:
+        return const Color(0xFFFFF3CC);
+      case ProductCategory.coldCoffee:
+        return const Color(0xFFE8DDD0);
+    }
+  }
 }
 
 // =============================================================================
@@ -380,8 +413,7 @@ class _ProductEditorSheet extends ConsumerStatefulWidget {
       _ProductEditorSheetState();
 }
 
-class _ProductEditorSheetState
-    extends ConsumerState<_ProductEditorSheet> {
+class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameCtrl;
   late final TextEditingController _priceCtrl;
@@ -393,16 +425,14 @@ class _ProductEditorSheetState
   @override
   void initState() {
     super.initState();
-    _nameCtrl =
-        TextEditingController(text: widget.initial?.name ?? '');
+    _nameCtrl = TextEditingController(text: widget.initial?.name ?? '');
     _priceCtrl = TextEditingController(
         text: widget.initial?.price.toStringAsFixed(0) ?? '');
     _descCtrl =
         TextEditingController(text: widget.initial?.description ?? '');
     _imageCtrl =
         TextEditingController(text: widget.initial?.imageUrl ?? '');
-    _category =
-        widget.initial?.category ?? ProductCategory.matcha;
+    _category = widget.initial?.category ?? ProductCategory.matcha;
     _available = widget.initial?.isAvailable ?? true;
   }
 
@@ -415,13 +445,39 @@ class _ProductEditorSheetState
     super.dispose();
   }
 
+  // Preview en tiempo real de la imagen
+  ProductEntity get _previewProduct => ProductEntity(
+        id: 'preview',
+        name: _nameCtrl.text.isEmpty ? 'Vista previa' : _nameCtrl.text,
+        price: 0,
+        category: _category,
+        description: null,
+        imageUrl: _imageCtrl.text.trim().isEmpty ? null : _imageCtrl.text.trim(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+  Color get _bgColor {
+    switch (_category) {
+      case ProductCategory.matcha:
+        return const Color(0xFFDFF2D0);
+      case ProductCategory.smoothies:
+        return const Color(0xFFFFE4F0);
+      case ProductCategory.healthyJuices:
+        return const Color(0xFFFFF3CC);
+      case ProductCategory.coldCoffee:
+        return const Color(0xFFE8DDD0);
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final notifier = ref.read(productProvider.notifier);
     final price =
         double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0;
-    final imageUrl =
-        _imageCtrl.text.trim().isEmpty ? null : _imageCtrl.text.trim();
+    final imageUrl = _imageCtrl.text.trim().isEmpty
+        ? null
+        : _imageCtrl.text.trim();
 
     if (widget.initial == null) {
       await notifier.createProduct(
@@ -442,9 +498,8 @@ class _ProductEditorSheetState
             ? null
             : _descCtrl.text.trim(),
         isAvailable: _available,
-        updatedAt: DateTime.now(),
         imageUrl: imageUrl,
-        clearImage: imageUrl == null,
+        updatedAt: DateTime.now(),
       );
       await notifier.updateProduct(updated);
     }
@@ -455,210 +510,195 @@ class _ProductEditorSheetState
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.initial != null;
-    final imageUrl = _imageCtrl.text.trim();
-    final hasValidImage = imageUrl.isNotEmpty &&
-        (imageUrl.startsWith('http://') ||
-            imageUrl.startsWith('https://'));
-
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isEdit ? 'Editar producto' : 'Nuevo producto',
-                style: context.textStyles.titleLarge?.bold,
-              ),
-              const SizedBox(height: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isEdit ? 'Editar producto' : 'Nuevo producto',
+              style: context.textStyles.titleLarge?.bold,
+            ),
+            const SizedBox(height: 16),
 
-              // Nombre
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  prefixIcon: Icon(Icons.emoji_food_beverage),
-                ),
-                textInputAction: TextInputAction.next,
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Ingrese un nombre'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-
-              // Precio
-              TextFormField(
-                controller: _priceCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Precio',
-                  prefixIcon: Icon(Icons.attach_money),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  final val =
-                      double.tryParse((v ?? '').replaceAll(',', '.'));
-                  if (val == null || val <= 0) {
-                    return 'Ingrese un precio válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Categoría
-              DropdownButtonFormField<ProductCategory>(
-                value: _category,
-                items: ProductCategory.values
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text('${c.icon} ${c.displayName}'),
-                        ))
-                    .toList(),
-                onChanged: (v) =>
-                    setState(() => _category = v ?? ProductCategory.matcha),
-                decoration: const InputDecoration(
-                  labelText: 'Categoría',
-                  prefixIcon: Icon(Icons.category),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Descripción
-              TextFormField(
-                controller: _descCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  prefixIcon: Icon(Icons.description),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // ── Campo de imagen ──────────────────────────────────────────
-              TextFormField(
-                controller: _imageCtrl,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  labelText: 'URL de imagen (opcional)',
-                  hintText: 'https://ejemplo.com/imagen.jpg',
-                  prefixIcon: const Icon(Icons.image),
-                  suffixIcon: _imageCtrl.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close),
-                          tooltip: 'Quitar imagen',
-                          onPressed: () {
-                            _imageCtrl.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                  helperText:
-                      'Pega el enlace directo a una imagen (jpg, png, webp)',
-                ),
-                keyboardType: TextInputType.url,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return null;
-                  final trimmed = v.trim();
-                  if (!trimmed.startsWith('http://') &&
-                      !trimmed.startsWith('https://')) {
-                    return 'La URL debe comenzar con http:// o https://';
-                  }
-                  return null;
-                },
-              ),
-
-              // Preview de imagen
-              if (hasValidImage) ...[
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    height: 140,
-                    width: double.infinity,
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: Colors.grey[100],
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey[100],
-                        child: const Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.broken_image,
-                                  color: Colors.grey, size: 32),
-                              SizedBox(height: 8),
-                              Text(
-                                'No se pudo cargar la imagen',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 12),
-                              ),
-                            ],
-                          ),
+            // ── Preview de imagen ────────────────────────────────────
+            Center(
+              child: StatefulBuilder(
+                builder: (_, setLocal) {
+                  return Column(
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: ProductImage(
+                          product: _previewProduct,
+                          bgColor: _bgColor,
+                          emojiSize: 48,
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
-
-              // Disponible (solo edición)
-              if (isEdit) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(Icons.check_circle_outline),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Disponible para la venta',
-                        style: context.textStyles.titleSmall,
+                      const SizedBox(height: 6),
+                      Text(
+                        'Vista previa',
+                        style: context.textStyles.labelSmall
+                            ?.withColor(Colors.grey[500]!),
                       ),
-                    ),
-                    Switch(
-                      value: _available,
-                      onChanged: (v) => setState(() => _available = v),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
 
-              const SizedBox(height: 20),
+            // ── Campo imagen ─────────────────────────────────────────
+            TextFormField(
+              controller: _imageCtrl,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Imagen (URL o emoji)',
+                hintText: 'https://... o 🍵',
+                prefixIcon: const Icon(Icons.image),
+                suffixIcon: _imageCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          _imageCtrl.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                helperText:
+                    'Pegá una URL de imagen o escribí un emoji personalizado',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                      color: AppColors.oliveGreen.withValues(alpha: 0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide:
+                      const BorderSide(color: AppColors.oliveGreen, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Nombre ───────────────────────────────────────────────
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Nombre',
+                prefixIcon: Icon(Icons.emoji_food_beverage),
+              ),
+              textInputAction: TextInputAction.next,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Ingrese un nombre'
+                  : null,
+            ),
+            const SizedBox(height: 12),
+
+            // ── Precio ───────────────────────────────────────────────
+            TextFormField(
+              controller: _priceCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Precio',
+                prefixIcon: Icon(Icons.attach_money),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              validator: (v) {
+                final value =
+                    double.tryParse((v ?? '').replaceAll(',', '.'));
+                if (value == null || value <= 0) {
+                  return 'Ingrese un precio válido';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // ── Categoría ────────────────────────────────────────────
+            DropdownButtonFormField<ProductCategory>(
+              value: _category,
+              items: ProductCategory.values
+                  .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text('${c.icon} ${c.displayName}'),
+                      ))
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _category = v ?? ProductCategory.matcha),
+              decoration: const InputDecoration(
+                labelText: 'Categoría',
+                prefixIcon: Icon(Icons.category),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Descripción ──────────────────────────────────────────
+            TextFormField(
+              controller: _descCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Descripción (opcional)',
+                prefixIcon: Icon(Icons.description),
+              ),
+            ),
+
+            // ── Disponible (solo en edición) ─────────────────────────
+            if (isEdit) ...[
+              const SizedBox(height: 8),
               Row(
                 children: [
+                  const Icon(Icons.check_circle_outline),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.close),
-                      label: const Text('Cancelar'),
-                      onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Disponible para la venta',
+                      style: context.textStyles.titleSmall,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: Icon(isEdit ? Icons.save : Icons.add),
-                      label: Text(
-                          isEdit ? 'Guardar cambios' : 'Crear producto'),
-                      onPressed: _submit,
-                    ),
+                  Switch(
+                    value: _available,
+                    onChanged: (v) => setState(() => _available = v),
                   ),
                 ],
               ),
-              SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
             ],
-          ),
+
+            const SizedBox(height: 16),
+
+            // ── Botones ──────────────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.close),
+                    label: const Text('Cancelar'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: Icon(isEdit ? Icons.save : Icons.add),
+                    label: Text(isEdit ? 'Guardar' : 'Crear producto'),
+                    onPressed: _submit,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
+          ],
         ),
       ),
     );
