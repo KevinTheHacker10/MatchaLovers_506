@@ -8,6 +8,7 @@ class ProductEntity {
   final ProductCategory category;
   final String? description;
   final bool isAvailable;
+  final String? imageUrl; // URL de imagen o emoji personalizado
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -18,6 +19,7 @@ class ProductEntity {
     required this.category,
     this.description,
     this.isAvailable = true,
+    this.imageUrl,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -29,6 +31,7 @@ class ProductEntity {
     ProductCategory? category,
     String? description,
     bool? isAvailable,
+    String? imageUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -39,8 +42,18 @@ class ProductEntity {
       category: category ?? this.category,
       description: description ?? this.description,
       isAvailable: isAvailable ?? this.isAvailable,
+      imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  /// Devuelve la imagen a mostrar: imageUrl si existe, si no el emoji de categoría
+  String get displayImage => (imageUrl != null && imageUrl!.isNotEmpty)
+      ? imageUrl!
+      : category.icon;
+
+  /// True si tiene imagen personalizada (URL http o emoji distinto al de categoría)
+  bool get hasCustomImage =>
+      imageUrl != null && imageUrl!.isNotEmpty && imageUrl != category.icon;
 }

@@ -39,7 +39,7 @@ class AuthRepository {
           updatedAt: now,
         ),
       ];
-      
+
       for (var user in sampleUsers) {
         await _saveUser(user);
       }
@@ -55,7 +55,6 @@ class AuthRepository {
         (u) => u.username == username && u.password == password,
         orElse: () => throw Exception('Invalid credentials'),
       );
-      
       await _prefs.setString(AppConstants.storageKeyCurrentUser, user.id);
       return user;
     } catch (e) {
@@ -74,7 +73,6 @@ class AuthRepository {
     try {
       final userId = _prefs.getString(AppConstants.storageKeyCurrentUser);
       if (userId == null) return null;
-      
       final users = await getAllUsers();
       return users.firstWhere(
         (u) => u.id == userId,
@@ -89,9 +87,11 @@ class AuthRepository {
   /// Get all users
   Future<List<UserModel>> getAllUsers() async {
     try {
-      final usersJson = _prefs.getStringList(AppConstants.storageKeyUsers) ?? [];
+      final usersJson =
+          _prefs.getStringList(AppConstants.storageKeyUsers) ?? [];
       return usersJson
-          .map((json) => UserModel.fromJson(jsonDecode(json) as Map<String, dynamic>))
+          .map((json) =>
+              UserModel.fromJson(jsonDecode(json) as Map<String, dynamic>))
           .toList();
     } catch (e) {
       debugPrint('Get all users error: $e');
@@ -99,20 +99,20 @@ class AuthRepository {
     }
   }
 
-  /// Save user
-  Future<void> _saveUser(UserModel user) async {
-    try {
-      final users = await getAllUsers();
-      users.add(user);
-      
-      final usersJson = users.map((u) => jsonEncode(u.toJson())).toList();
-      await _prefs.setStringList(AppConstants.storageKeyUsers, usersJson);
-    } catch (e) {
-      debugPrint('Save user error: $e');
-    }
+  /// Save entire user list (overwrites)
+  Future<void> _saveAllUsers(List<UserModel> users) async {
+    final usersJson = users.map((u) => jsonEncode(u.toJson())).toList();
+    await _prefs.setStringList(AppConstants.storageKeyUsers, usersJson);
   }
 
-  /// Create new user (admin only)
+  /// Append a new user
+  Future<void> _saveUser(UserModel user) async {
+    final users = await getAllUsers();
+    users.add(user);
+    await _saveAllUsers(users);
+  }
+
+  /// Create new user
   Future<UserEntity?> createUser({
     required String username,
     required String password,
@@ -130,7 +130,6 @@ class AuthRepository {
         createdAt: now,
         updatedAt: now,
       );
-      
       await _saveUser(user);
       return user;
     } catch (e) {
@@ -139,7 +138,48 @@ class AuthRepository {
     }
   }
 
-  Future<void> updateUser(UserEntity copyWith, {String? newPassword}) async {}
+  /// Update an existing user — fixes the empty stub
+  Future<void> updateUser(UserEntity user, {String? newPassword}) async {
+    try {
+      final users = await getAllUsers();
+      final idx = users.indexWhere((u) => u.id == user.id);
+      if (idx == -1) {
+        debugPrint('updateUser: user ${user.id} not found');
+        return;
+      }
 
-  Future<void> deleteUser(String id) async {}
+      // Keep existing password if caller didn't supply a new one
+      final passwordToSave =
+          (newPassword != null && newPassword.isNotEmpty)
+              ? newPassword
+              : users[idx].password;
+
+      users[idx] = UserModel(
+        id: user.id,
+        username: user.username,
+        password: passwordToSave,
+        fullName: user.fullName,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: DateTime.now(),
+      );
+
+      await _saveAllUsers(users);
+      debugPrint('User updated: ${user.id}');
+    } catch (e) {
+      debugPrint('updateUser error: $e');
+    }
+  }
+
+  /// Delete a user by ID — fixes the empty stub
+  Future<void> deleteUser(String userId) async {
+    try {
+      final users = await getAllUsers();
+      final filtered = users.where((u) => u.id != userId).toList();
+      await _saveAllUsers(filtered);
+      debugPrint('User deleted: $userId');
+    } catch (e) {
+      debugPrint('deleteUser error: $e');
+    }
+  }
 }

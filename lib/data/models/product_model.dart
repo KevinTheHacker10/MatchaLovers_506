@@ -10,6 +10,7 @@ class ProductModel extends ProductEntity {
     required super.category,
     super.description,
     super.isAvailable,
+    super.imageUrl,
     required super.createdAt,
     required super.updatedAt,
   });
@@ -25,6 +26,7 @@ class ProductModel extends ProductEntity {
       ),
       description: json['description'] as String?,
       isAvailable: json['isAvailable'] as bool? ?? true,
+      imageUrl: json['imageUrl'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -38,6 +40,7 @@ class ProductModel extends ProductEntity {
       'category': category.name,
       'description': description,
       'isAvailable': isAvailable,
+      'imageUrl': imageUrl,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -51,6 +54,7 @@ class ProductModel extends ProductEntity {
       category: entity.category,
       description: entity.description,
       isAvailable: entity.isAvailable,
+      imageUrl: entity.imageUrl,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );

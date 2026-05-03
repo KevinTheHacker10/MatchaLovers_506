@@ -33,11 +33,14 @@ class OrderNotifier extends Notifier<AsyncValue<List<OrderEntity>>> {
     }
   }
 
+  /// Create order — now accepts taxExempt and sinpeVoucher
   Future<OrderEntity?> createOrder({
     required String userId,
     required String userName,
     required List<OrderItemEntity> items,
     required PaymentMethod paymentMethod,
+    bool taxExempt = false,
+    String? sinpeVoucher,
   }) async {
     try {
       final order = await _repository.createOrder(
@@ -45,12 +48,10 @@ class OrderNotifier extends Notifier<AsyncValue<List<OrderEntity>>> {
         userName: userName,
         items: items,
         paymentMethod: paymentMethod,
+        taxExempt: taxExempt,
+        sinpeVoucher: sinpeVoucher,
       );
-      
-      if (order != null) {
-        await loadOrders();
-      }
-      
+      if (order != null) await loadOrders();
       return order;
     } catch (e) {
       debugPrint('Create order error: $e');
@@ -58,7 +59,8 @@ class OrderNotifier extends Notifier<AsyncValue<List<OrderEntity>>> {
     }
   }
 
-  Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
+  Future<void> updateOrderStatus(
+      String orderId, OrderStatus status) async {
     try {
       await _repository.updateOrderStatus(orderId, status);
       await loadOrders();
@@ -67,15 +69,17 @@ class OrderNotifier extends Notifier<AsyncValue<List<OrderEntity>>> {
     }
   }
 
-  Future<Map<String, dynamic>> getSalesStats({DateTime? startDate, DateTime? endDate}) async {
-    return await _repository.getSalesStats(startDate: startDate, endDate: endDate);
+  Future<Map<String, dynamic>> getSalesStats(
+      {DateTime? startDate, DateTime? endDate}) async {
+    return await _repository.getSalesStats(
+        startDate: startDate, endDate: endDate);
   }
 }
 
 /// Provider for orders state
-final orderProvider = NotifierProvider<OrderNotifier, AsyncValue<List<OrderEntity>>>(() {
-  return OrderNotifier();
-});
+final orderProvider =
+    NotifierProvider<OrderNotifier, AsyncValue<List<OrderEntity>>>(
+        () => OrderNotifier());
 
 /// Provider for today's orders
 final todayOrdersProvider = Provider<List<OrderEntity>>((ref) {
@@ -85,8 +89,9 @@ final todayOrdersProvider = Provider<List<OrderEntity>>((ref) {
   
   return ordersAsync.maybeWhen(
     data: (orders) => orders.where((o) {
-      final orderDate = DateTime(o.createdAt.year, o.createdAt.month, o.createdAt.day);
-      return orderDate.isAtSameMomentAs(today);
+      final d = DateTime(
+          o.createdAt.year, o.createdAt.month, o.createdAt.day);
+      return d.isAtSameMomentAs(today);
     }).toList(),
     orElse: () => [],
   );
