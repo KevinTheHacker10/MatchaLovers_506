@@ -2,7 +2,7 @@
 class AppConstants {
   static const String appName = 'Matcha Lovers 506';
   static const String currency = '₡';
-  
+
   // Storage keys
   static const String storageKeyUsers = 'users';
   static const String storageKeyProducts = 'products';
@@ -14,7 +14,7 @@ class AppConstants {
 enum UserRole {
   admin,
   waiter;
-  
+
   String get displayName {
     switch (this) {
       case UserRole.admin:
@@ -31,7 +31,7 @@ enum ProductCategory {
   smoothies,
   healthyJuices,
   coldCoffee;
-  
+
   String get displayName {
     switch (this) {
       case ProductCategory.matcha:
@@ -44,7 +44,7 @@ enum ProductCategory {
         return 'Cafés Fríos';
     }
   }
-  
+
   String get icon {
     switch (this) {
       case ProductCategory.matcha:
@@ -64,7 +64,7 @@ enum OrderStatus {
   pending,
   completed,
   cancelled;
-  
+
   String get displayName {
     switch (this) {
       case OrderStatus.pending:
@@ -77,17 +77,34 @@ enum OrderStatus {
   }
 }
 
-/// Payment method
+/// Payment method — SINPE Móvil agregado
 enum PaymentMethod {
   cash,
-  card;
-  
+  card,
+  sinpe;
+
   String get displayName {
     switch (this) {
       case PaymentMethod.cash:
         return 'Efectivo';
       case PaymentMethod.card:
         return 'Tarjeta';
+      case PaymentMethod.sinpe:
+        return 'SINPE Móvil';
     }
   }
+
+  String get icon {
+    switch (this) {
+      case PaymentMethod.cash:
+        return '💵';
+      case PaymentMethod.card:
+        return '💳';
+      case PaymentMethod.sinpe:
+        return '📱';
+    }
+  }
+
+  /// SINPE requiere número de comprobante
+  bool get requiresVoucher => this == PaymentMethod.sinpe;
 }

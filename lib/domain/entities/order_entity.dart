@@ -42,6 +42,8 @@ class OrderEntity {
   final double total;
   final OrderStatus status;
   final PaymentMethod paymentMethod;
+  final bool taxExempt;         // Exonerado de IVA
+  final String? sinpeVoucher;   // Número de comprobante SINPE
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -55,6 +57,8 @@ class OrderEntity {
     required this.total,
     required this.status,
     required this.paymentMethod,
+    this.taxExempt = false,
+    this.sinpeVoucher,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -69,6 +73,8 @@ class OrderEntity {
     double? total,
     OrderStatus? status,
     PaymentMethod? paymentMethod,
+    bool? taxExempt,
+    String? sinpeVoucher,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -82,6 +88,8 @@ class OrderEntity {
       total: total ?? this.total,
       status: status ?? this.status,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      taxExempt: taxExempt ?? this.taxExempt,
+      sinpeVoucher: sinpeVoucher ?? this.sinpeVoucher,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
